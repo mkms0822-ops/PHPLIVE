@@ -116,6 +116,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;gap:6px;overflow-x:auto;background:var(--bg);padding:8px 0;margin:-14px auto 10px;max-width:1180px;scrollbar-width:none}
 .appbar::-webkit-scrollbar{display:none}
 .tb{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;padding:8px 12px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;line-height:1}
+a.tb{text-decoration:none}
+.tb.sos{border-color:var(--stop);color:var(--stop)}
 .tb:hover{border-color:var(--brand);color:var(--brand)}
 .tb:focus-visible,.tb-sz button:focus-visible,.mi:focus-visible,.mx:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .tb-sz{display:inline-flex;flex-shrink:0;border:1px solid var(--line);border-radius:99px;overflow:hidden}
@@ -137,6 +139,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:100;max-width:90vw}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .wrap{zoom:var(--z,1)}
+a.mi{text-decoration:none;box-sizing:border-box}
+.info h2{margin:0 0 6px}
+.info ul{margin:6px 0 0;padding-left:1.3em}
+.info li{margin:3px 0}
+.mancard{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mancard p{margin:4px 0 0;color:var(--mute);font-size:13px;flex:1 1 260px}
+.mancard a.go{display:inline-block;padding:10px 16px;border-radius:99px;background:var(--stop);color:#fff;font-weight:700;text-decoration:none;font-size:13px}
 @media (max-width:860px){
   .hero,.main{grid-template-columns:minmax(0,1fr)}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -151,6 +160,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </style>
 
 <header class="appbar" id="appbar">
+  <a class="tb sos" id="abMan" href="https://bousai0111.info/Manual.html" target="_blank" rel="noopener">🆘 緊急マニュアル</a>
   <button class="tb" id="abRefresh" type="button">🔄 更新</button>
   <button class="tb" id="abShare" type="button">📤 共有</button>
   <button class="tb" id="abCopy" type="button">📋 コピー</button>
@@ -168,6 +178,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <button class="mi" data-go="sv" type="button">🛑 停止・メンテナンス中のサービス</button>
     <button class="mi" data-go="fd" type="button">🕒 できごとの記録</button>
     <button class="mi" data-go="src" type="button">📚 見方・出典</button>
+    <div class="ms">緊急時</div>
+    <a class="mi" href="https://bousai0111.info/Manual.html" target="_blank" rel="noopener">🆘 緊急対応マニュアル<small>災害・事件・事故・サイバー攻撃・個人情報漏洩の対応方法(文章と音声)。外部サイトが開きます</small></a>
+    <div class="ms">このボードについて</div>
+    <button class="mi" data-go="privacy" type="button">🔒 プライバシーポリシー</button>
+    <button class="mi" data-go="credit" type="button">✍ 製作者クレジット</button>
     <div class="ms">操作</div>
     <button class="mi" data-act="refresh" type="button">🔄 今すぐ更新<small>30秒ごとに自動更新されています</small></button>
     <button class="mi" data-act="copy" type="button">📋 現在の状況をコピー<small>SNSなどに貼れる要約文</small></button>
@@ -233,6 +248,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div id="world"></div>
   </section>
 
+  <section class="card mancard" id="manual">
+    <div><h2>🆘 緊急対応マニュアル</h2><p>災害・事件・事故・サイバー攻撃・個人情報漏洩などが起きたときの対応方法を、文章と音声で案内する外部サイトです。PHPの脆弱性で自分の情報が心配な場合や、被害に遭ったかもしれない場合の確認に。</p></div>
+    <a class="go" href="https://bousai0111.info/Manual.html" target="_blank" rel="noopener">マニュアルを開く</a>
+  </section>
+
   <section class="card note" id="src">
     <b>見方</b>:各社の公式告知やまとめ記事で確認できた分だけを載せています。載っていないサービスも多数あるはずです。時刻は告知ベースで、延長・変更が出ます。利用前に必ず各社の公式告知を確認してください。「停止中」は、告知の開始時刻を過ぎた状態を自動で判定しています。復旧は、確認できたものだけ「復旧済み」に変えます。<br>
     出典:
@@ -243,6 +263,30 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <a href="https://posfie.com/@snlsnr/p/a5l7BR7" target="_blank" rel="noopener">posfie</a> /
     <a href="https://minna-systems.co.jp/news/8344/" target="_blank" rel="noopener">みんなのシステムズ</a>
   </section>
+
+  <section class="card note info" id="privacy">
+    <h2>プライバシーポリシー</h2>
+    制定:2026年10月22日
+    <ul>
+      <li><b>個人情報の収集</b>:このボードは、氏名・メールアドレスなどの入力を求めず、個人情報を収集しません。</li>
+      <li><b>端末に保存するもの</b>:ダーク/ライトの選択と文字サイズを、お使いの端末のブラウザ内にだけ保存します。外部には送信しません。削除はブラウザの設定から行えます。</li>
+      <li><b>検索欄</b>:サービス名の検索で入力した文字は、端末内で絞り込みに使うだけで、送信しません。</li>
+      <li><b>外部との通信</b>:文字の表示に Google Fonts を読み込むため、その際に閲覧者のIPアドレスなどが Google に送られることがあります。掲載データの取得とページの配信は、公開基盤(claude.ai)を通じて行われ、アクセスの記録が基盤側に残る場合があります。</li>
+      <li><b>外部リンク</b>:出典や緊急対応マニュアルなどのリンク先は別のサイトです。リンクのクリックをこのボードが記録することはなく、リンク先での扱いは各サイトの方針に従います。</li>
+      <li><b>掲載内容</b>:報道や各社の告知にもとづく情報で、正確性・即時性は保証できません。重要な判断は公式の発表で確認してください。</li>
+    </ul>
+  </section>
+
+  <section class="card note info" id="credit">
+    <h2>製作者クレジット</h2>
+    <ul>
+      <li><b>製作・運営</b>:bousai0111.info(防災・緊急対応マニュアル)</li>
+      <li><b>情報の整理とページの作成</b>:AI(Claude、Anthropic)の支援を受けて作成しています。</li>
+      <li><b>情報源</b>:各社の公式告知、報道、セキュリティ各社の公開資料(出典は下の「見方・出典」と海外ニュース欄のリンク)。</li>
+      <li><b>書体</b>:Noto Sans JP、JetBrains Mono(Google Fonts)。</li>
+    </ul>
+  </section>
+
 </div>
 
 <script>
