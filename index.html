@@ -1,0 +1,402 @@
+<title>PHP脆弱性 LIVE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: 放送局のステータスボード。上に時刻とカウントダウン、中央に停止サービス表、右に時系列。信号色は状態にだけ使う */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#14202b; --mute:#5b6b79; --line:#dbe2e8;
+  --brand:#0b5fff; --brand-soft:#e6eeff;
+  --stop:#c62828; --stop-soft:#fde8e8;
+  --plan:#b26a00; --plan-soft:#fff1d6;
+  --part:#6a4bc4; --part-soft:#ece7fb;
+  --ok:#1b7f4a; --ok-soft:#e1f4ea;
+  --f-sans:"Noto Sans JP",system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d141b; --panel:#141d26; --ink:#e8eef3; --mute:#93a4b3; --line:#243240;
+  --brand:#6ea1ff; --brand-soft:#17264a;
+  --stop:#ff7b72; --stop-soft:#3a1a1c;
+  --plan:#f2b34c; --plan-soft:#3a2d12;
+  --part:#b59cff; --part-soft:#2a2347;
+  --ok:#5fd394; --ok-soft:#143325; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d141b; --panel:#141d26; --ink:#e8eef3; --mute:#93a4b3; --line:#243240;
+  --brand:#6ea1ff; --brand-soft:#17264a;
+  --stop:#ff7b72; --stop-soft:#3a1a1c;
+  --plan:#f2b34c; --plan-soft:#3a2d12;
+  --part:#b59cff; --part-soft:#2a2347;
+  --ok:#5fd394; --ok-soft:#143325; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance}
+/* top bar */
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.live{display:inline-flex;align-items:center;gap:6px;background:var(--stop);color:#fff;font-weight:900;font-size:12px;letter-spacing:.12em;padding:3px 10px;border-radius:4px}
+.live i{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
+h1{font-size:22px;font-weight:900;letter-spacing:.01em}
+.clock{text-align:right;line-height:1.3}
+.clock b{font-size:22px}
+.clock small{display:block;color:var(--mute);font-size:12px}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);width:0}
+.sub{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--mute);font-size:12px}
+.sub button{font:inherit;color:var(--brand);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.cd{display:flex;flex-direction:column;gap:10px}
+.cd .lbl{font-size:12px;font-weight:700;color:var(--mute);letter-spacing:.06em}
+.cd .big{font-size:clamp(40px,9vw,64px);font-weight:700;line-height:1.05}
+.cd .head{font-size:16px;font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px}
+.step{border-top:4px solid var(--line);padding-top:6px;font-size:12px;color:var(--mute);min-width:0}
+.step.done{border-color:var(--ok);color:var(--ink)}
+.step.now{border-color:var(--stop);color:var(--ink);font-weight:700}
+.step em{display:block;font-style:normal;font-size:11px;color:var(--mute);font-weight:400}
+.facts{display:grid;gap:0}
+.facts div{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.facts div:last-child{border:0}
+.facts dt{color:var(--mute);font-size:12px;font-weight:700}
+.facts dd{margin:0}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--plan-soft);color:var(--plan);margin-left:4px;white-space:nowrap}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.tile b{font-size:34px;line-height:1.1}
+.tile span{font-size:12px;font-weight:700;color:var(--mute)}
+.tile.stop b{color:var(--stop)} .tile.plan b{color:var(--plan)} .tile.part b{color:var(--part)} .tile.ok b{color:var(--ok)}
+/* main */
+.main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:4px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip:focus-visible,input:focus-visible,.sub button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+#q{font:inherit;flex:1 1 160px;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:5px 10px}
+.list{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.pill{align-self:start;text-align:center;font-size:12px;font-weight:900;border-radius:5px;padding:2px 4px}
+.pill.stop{background:var(--stop-soft);color:var(--stop)}
+.pill.plan{background:var(--plan-soft);color:var(--plan)}
+.pill.part{background:var(--part-soft);color:var(--part)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.nm{font-weight:700;overflow-wrap:anywhere}
+.nm small{font-weight:400;color:var(--mute);margin-left:6px}
+.tm{color:var(--mute);font-size:12px}
+.nt{font-size:12px;color:var(--mute)}
+.empty{padding:22px 0;color:var(--mute);text-align:center}
+/* feed */
+.feed{display:flex;flex-direction:column;gap:0;max-height:640px;overflow:auto}
+.ev{display:grid;grid-template-columns:3.6em minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev .t{color:var(--mute);font-size:12px}
+.ev.new .t{color:var(--stop);font-weight:700}
+.ev p{margin:0}
+h2{font-size:16px;font-weight:900}
+.hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hd small{color:var(--mute)}
+.note{font-size:12px;color:var(--mute);line-height:1.7}
+.note a{color:var(--brand)}
+.err{background:var(--plan-soft);color:var(--plan);padding:6px 10px;border-radius:6px;font-size:12px}
+@media (max-width:860px){
+  .hero,.main{grid-template-columns:minmax(0,1fr)}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .feed{max-height:none}
+}
+@media (max-width:420px){
+  .row{grid-template-columns:minmax(0,1fr)}
+  .pill{justify-self:start;padding:2px 10px}
+  .facts div{grid-template-columns:minmax(0,1fr)}
+  .facts div{gap:0}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brandrow">
+      <span class="live"><i></i>LIVE</span>
+      <h1>PHP脆弱性 緊急パッチ 状況ボード</h1>
+    </div>
+    <div class="clock mono"><b id="now">--:--:--</b><small id="date">日本時間</small></div>
+  </header>
+  <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+  <div class="sub">
+    <span>30秒ごとに自動更新</span>
+    <span>最終取得 <b class="mono" id="fetched">--:--:--</b></span>
+    <span>掲載データの更新 <b class="mono" id="updated">--:--</b></span>
+    <span id="next" class="mono"></span>
+    <button id="refresh" type="button">今すぐ更新</button>
+  </div>
+  <div id="err" class="err" hidden></div>
+
+  <section class="hero">
+    <div class="card cd">
+      <div class="lbl" id="cdlbl">修正版の公開予定まで(日本時間 10/21 23:00)</div>
+      <div class="big mono" id="cd">--:--:--</div>
+      <div class="head" id="headline"></div>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="card">
+      <h2>脆弱性の要点</h2>
+      <dl class="facts" id="facts"></dl>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="main">
+    <div class="card">
+      <div class="hd"><h2>停止・メンテナンス中のサービス</h2><small id="cnt"></small></div>
+      <div class="tools">
+        <button class="chip" data-f="all" aria-pressed="true" type="button">すべて</button>
+        <button class="chip" data-f="stop" aria-pressed="false" type="button">停止中</button>
+        <button class="chip" data-f="plan" aria-pressed="false" type="button">開始予定</button>
+        <button class="chip" data-f="part" aria-pressed="false" type="button">一部制限</button>
+        <button class="chip" data-f="ok" aria-pressed="false" type="button">復旧済み</button>
+        <input id="q" type="search" placeholder="サービス名で検索" aria-label="サービス名で検索">
+      </div>
+      <div class="tools" id="cats"></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="card">
+      <div class="hd"><h2>できごとの記録</h2><small>新しい順</small></div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </section>
+
+  <section class="card note">
+    <b>見方</b>:各社の公式告知やまとめ記事で確認できた分だけを載せています。載っていないサービスも多数あるはずです。時刻は告知ベースで、延長・変更が出ます。利用前に必ず各社の公式告知を確認してください。「停止中」は、告知の開始時刻を過ぎた状態を自動で判定しています。復旧は、確認できたものだけ「復旧済み」に変えます。<br>
+    出典:
+    <a href="https://piyolog.hatenadiary.jp/entry/2026/10/21/174516" target="_blank" rel="noopener">piyolog</a> /
+    <a href="https://blog.flatt.tech/entry/php2shell" target="_blank" rel="noopener">GMO Flatt Security</a> /
+    <a href="https://www.gamespark.jp/article/2026/10/21/173908.html" target="_blank" rel="noopener">Game Spark</a> /
+    <a href="https://buzzneta-kaisetsu.com/php-vulnerability-maintenance/" target="_blank" rel="noopener">buzzneta</a> /
+    <a href="https://posfie.com/@snlsnr/p/a5l7BR7" target="_blank" rel="noopener">posfie</a> /
+    <a href="https://minna-systems.co.jp/news/8344/" target="_blank" rel="noopener">みんなのシステムズ</a>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+var J="+09:00", D="2026-10-21T";
+function T(h,m){return D+("0"+h).slice(-2)+":"+("0"+m).slice(-2)+":00"+J}
+var PATCH_AT=new Date(T(23,0)).getTime();
+var REFRESH=30000;
+
+/* 通信できない閲覧者向けの控え。DBに最新があればそちらを使う */
+var FB_META={phase:1,updatedAt:T(22,30),
+  headline:"修正版の公開は日本時間23時の予定。各社が先行して停止・メンテナンスに入っています。",
+  attack:"実際の悪用は未確認(watchTowr、Huntress、ASD/ACSC、IPA)。実証コードとみられるものは出回り始めたとの報告あり。",
+  facts:[
+    ["CVE","CVE-2026-109618 / CVE-2026-109619"],
+    ["深刻度","CVSS v4.0 で 9.2(Critical)。リモートコード実行の恐れ"],
+    ["修正版","日本時間 10/21 23:00(UTC 14:00)に公開予定。悪用が見つかれば前倒しの可能性"],
+    ["影響範囲","<span class='tag'>未確定</span> PHP 5以降、5.4以降、5〜8など情報源で食い違い"],
+    ["推定される場所","<span class='tag'>非公式</span> Session Upload Progress(ext/session)。既定で有効との指摘"],
+    ["暫定策","session.upload_progress.enabled=0。ただし緩和にとどまり、根本対策はパッチ"],
+    ["悪用状況","実際の悪用は未確認。実証コードの出回りは報告あり"]
+  ]};
+var FB_SV=[
+ {n:"グランブルーファンタジー",c:"ゲーム",st:"plan",from:T(23,0),end:"22日 7:00まで(予定・延長あり)"},
+ {n:"ウマ娘 プリティーダービー",c:"ゲーム",st:"plan",from:T(23,0),end:"終了未定"},
+ {n:"Shadowverse: Worlds Beyond",c:"ゲーム",st:"plan",from:T(23,0),end:"終了未定",nt:"公式サイト・シャドナビも閲覧不可"},
+ {n:"ドルフィンウェーブ",c:"ゲーム",st:"plan",from:T(23,0),end:"終了未定"},
+ {n:"ヘブンバーンズレッド",c:"ゲーム",st:"plan",from:T(22,30),end:"終了未定"},
+ {n:"チュウニズム",c:"ゲーム",st:"part",from:null,end:"時刻の記載なし",nt:"CHUNITHM-NETと公式サイトが対象。筐体でのAimeプレイは可能"},
+ {n:"プリンセスコネクト!Re:Dive",c:"ゲーム",st:"plan",from:T(23,0),end:"終了未定"},
+ {n:"文豪とアルケミスト",c:"ゲーム",st:"plan",from:T(23,0),end:"終了未定"},
+ {n:"刀剣乱舞ONLINE",c:"ゲーム",st:"plan",from:T(22,0),end:"終了未定",nt:"22日10時ごろに進捗報告予定"},
+ {n:"ポケモンチャンピオンズ",c:"ゲーム",st:"plan",from:T(20,0),end:"終了未定"},
+ {n:"pixiv(百科事典・FANBOXなど)",c:"Web・配信",st:"plan",from:T(19,0),end:"22日未明(予定)"},
+ {n:"BOOTH",c:"Web・配信",st:"plan",from:T(19,0),end:"22日未明(予定)"},
+ {n:"pictSQUARE / pictBLand / pictSPACE / 翡翠SINGS",c:"Web・配信",st:"plan",from:T(17,30),end:"22日中の再開を目指す",nt:"開始は「夕方」の記載のため17:30は目安"},
+ {n:"ニコニコ(動画・チャンネル・プレミアム)",c:"Web・配信",st:"plan",from:T(19,0),end:"終了未定",nt:"順次メンテナンス"},
+ {n:"ニコニコ漫画",c:"Web・配信",st:"plan",from:T(19,0),end:"22日 10:00まで(予定)"},
+ {n:"ツイキャス",c:"Web・配信",st:"plan",from:T(22,30),end:"終了未定"},
+ {n:"REALITY",c:"Web・配信",st:"plan",from:T(23,0),end:"24:00まで"},
+ {n:"アルファポリス(全サイト・アプリ)",c:"Web・配信",st:"plan",from:T(12,0),end:"安全確認後に再開",nt:"一時停止中。開始時刻の記載なし"},
+ {n:"小説家になろう",c:"Web・配信",st:"part",from:T(17,0),end:"終了未定",nt:"一部の接続元のみ制限。全体停止ではない"},
+ {n:"バンダイチャンネル",c:"Web・配信",st:"plan",from:T(20,0),end:"終了未定"},
+ {n:"アニメイト",c:"Web・配信",st:"plan",from:T(12,0),end:"終了未定",nt:"各種サービスで緊急メンテ。詳細は公式告知"},
+ {n:"メ〜テレ(HP・ウルフィアプリ)",c:"Web・配信",st:"plan",from:T(12,0),end:"終了未定",nt:"開始時刻の記載なし"},
+ {n:"ブシロード(グループのサイト・システム)",c:"Web・配信",st:"plan",from:T(23,0),end:"22日以降(終了未定)"},
+ {n:"OBS Studio(公式サイト)",c:"Web・配信",st:"part",from:null,end:"時刻の記載なし",nt:"公式サイトの一部が利用不可。配信機能への影響なし"},
+ {n:"BASE(ネットショップ作成)",c:"事業者・インフラ",st:"plan",from:T(15,50),end:"終了未定",nt:"緊急メンテを前倒し"},
+ {n:"Studio",c:"事業者・インフラ",st:"plan",from:T(22,0),end:"終了未定"},
+ {n:"コドモン(保育園・幼稚園の連絡アプリ)",c:"事業者・インフラ",st:"plan",from:T(12,0),end:"22日早朝に再開の見込み",nt:"昼から順次停止。保護者アプリを含む全サービス"},
+ {n:"さくらインターネット",c:"事業者・インフラ",st:"part",from:null,end:"時刻の記載なし",nt:"機能の一部を停止"},
+ {n:"エックスサーバー(管理画面など)",c:"事業者・インフラ",st:"plan",from:T(12,0),end:"22日未明に再開の見込み",nt:"アカウント管理画面などのアクセスを停止"},
+ {n:"ヤマハ SYNCROOM(Yamaha Music ID認証)",c:"事業者・インフラ",st:"plan",from:T(22,50),end:"22日 2:30まで(延長あり)"},
+ {n:"ワコム(一部サイト)",c:"事業者・インフラ",st:"part",from:null,end:"時刻の記載なし"},
+ {n:"モリサワ(コーポレート・ストアなど)",c:"事業者・インフラ",st:"part",from:null,end:"時刻の記載なし",nt:"一部またはすべてを一時停止"},
+ {n:"キンブル(ホームページ)",c:"事業者・インフラ",st:"plan",from:T(12,0),end:"終了未定",nt:"一時的に公開を中止"},
+ {n:"みんなのシステムズ(開発・保守のPHP製システム)",c:"事業者・インフラ",st:"plan",from:T(23,0),end:"終了未定",nt:"PHP 8.1以前は修正版が見込めず、該当者に個別連絡"},
+ {n:"ナムコ オンラインクレーン",c:"ゲーム",st:"watch",from:null,end:"実施は未確定",nt:"「メンテナンスや一時停止を行う場合がある」との案内のみ"}
+];
+var FB_FEED=[
+ {t:T(22,30),k:"info",x:"このボードを公開。確認済みの約40サービスの停止・予定を掲載。以降、30秒ごとに表示を更新します。"},
+ {t:T(21,48),k:"info",x:"まとめ記事から、ゲーム・Web・事業者向けサービスの停止予定を整理。"},
+ {t:T(20,0),k:"stop",x:"ポケモンチャンピオンズ、バンダイチャンネルがメンテナンス開始。"},
+ {t:T(19,0),k:"stop",x:"pixiv、BOOTH、ニコニコが順次メンテナンスに入る。"},
+ {t:T(17,0),k:"stop",x:"小説家になろうが一部の接続元を制限。"},
+ {t:T(15,50),k:"stop",x:"BASEが緊急メンテナンスを前倒しで開始。"},
+ {t:T(14,0),k:"info",x:"漏えいした情報をもとに、PHPの脆弱性の内容が非公式に広がり始めたとの報告。実証コードとみられるものも確認されたとの情報(未確認)。"},
+ {t:T(12,0),k:"info",x:"PHP開発チームが、深刻度9.2の脆弱性2件について、日本時間23時に修正版を公開すると予告。"}
+];
+
+var S={meta:FB_META,sv:FB_SV,feed:FB_FEED,filter:"all",cat:"all",q:"",src:"控え"};
+var db=null, lastFetch=0, nextAt=Date.now()+REFRESH;
+
+function $(i){return document.getElementById(i)}
+function tz(ms,o){return new Intl.DateTimeFormat("ja-JP",Object.assign({timeZone:"Asia/Tokyo",hour12:false},o)).format(ms)}
+function hms(ms){return tz(ms,{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function hm(ms){return tz(ms,{hour:"2-digit",minute:"2-digit"})}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+/* 状態の自動判定:開始時刻を過ぎた予定は「停止中」に切り替える */
+function eff(s,now){
+  if(s.st==="ok")return"ok";
+  if(s.st==="watch")return"watch";
+  if(s.st==="part")return"part";
+  if(s.from && new Date(s.from).getTime()>now)return"plan";
+  return"stop";
+}
+var LBL={stop:"停止中",plan:"開始予定",part:"一部制限",ok:"復旧済み",watch:"可能性あり"};
+var ORD={stop:0,plan:1,part:2,watch:3,ok:4};
+
+function renderSteps(){
+  var p=Number(S.meta.phase)||0, names=[["予告","修正版の公開前"],["修正版の公開","23:00予定"],["適用・復旧","各社が順次"],["収束","公式の発表待ち"]];
+  $("steps").innerHTML=names.map(function(n,i){
+    var c=i<p?"done":(i===p?"now":"");
+    return '<div class="step '+c+'">'+esc(n[0])+'<em>'+esc(n[1])+'</em></div>';
+  }).join("");
+}
+function renderFacts(){
+  var f=S.meta.facts||[];
+  $("facts").innerHTML=f.map(function(r){return '<div><dt>'+esc(r[0])+'</dt><dd>'+r[1]+'</dd></div>'}).join("");
+}
+function renderHead(now){
+  var past=now>=PATCH_AT, p=Number(S.meta.phase)||0;
+  var h=S.meta.headline||"";
+  if(past && p<2) h="修正版の公開予定時刻を過ぎました。公開の確認を待っています。"+(h?" ("+h+")":"");
+  $("headline").textContent=h;
+}
+function renderCountdown(now){
+  var d=PATCH_AT-now;
+  if(d>0){
+    var s=Math.floor(d/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+    $("cd").textContent=[h,m,x].map(function(v){return("0"+v).slice(-2)}).join(":");
+    $("cdlbl").textContent="修正版の公開予定まで(日本時間 10/21 23:00)";
+  }else{
+    var e=Math.floor(-d/1000),H=Math.floor(e/3600),M=Math.floor(e%3600/60),X=e%60;
+    $("cd").textContent="+"+[H,M,X].map(function(v){return("0"+v).slice(-2)}).join(":");
+    $("cdlbl").textContent="公開予定時刻から経過";
+  }
+}
+function renderTiles(now){
+  var c={stop:0,plan:0,part:0,ok:0};
+  S.sv.forEach(function(s){var e=eff(s,now);if(c[e]!==undefined)c[e]++});
+  $("tiles").innerHTML=
+   '<div class="tile stop"><b class="mono">'+c.stop+'</b><span>停止・メンテ中</span></div>'+
+   '<div class="tile plan"><b class="mono">'+c.plan+'</b><span>開始予定</span></div>'+
+   '<div class="tile part"><b class="mono">'+c.part+'</b><span>一部制限</span></div>'+
+   '<div class="tile ok"><b class="mono">'+c.ok+'</b><span>復旧済み</span></div>';
+}
+function renderCats(){
+  var cats=["all"],seen={};
+  S.sv.forEach(function(s){if(!seen[s.c]){seen[s.c]=1;cats.push(s.c)}});
+  $("cats").innerHTML=cats.map(function(c){
+    return '<button class="chip" data-c="'+esc(c)+'" aria-pressed="'+(S.cat===c)+'" type="button">'+(c==="all"?"全分類":esc(c))+'</button>';
+  }).join("");
+}
+function renderList(now){
+  var q=S.q.trim().toLowerCase();
+  var rows=S.sv.map(function(s){return{s:s,e:eff(s,now)}}).filter(function(r){
+    if(S.filter!=="all"&&r.e!==S.filter)return false;
+    if(S.cat!=="all"&&r.s.c!==S.cat)return false;
+    if(q&&(r.s.n+" "+(r.s.nt||"")).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){
+    return ORD[a.e]-ORD[b.e] || (new Date(a.s.from||0)-new Date(b.s.from||0)) || a.s.n.localeCompare(b.s.n,"ja");
+  });
+  $("cnt").textContent=rows.length+" 件表示 / 掲載 "+S.sv.length+" 件";
+  if(!rows.length){$("list").innerHTML='<div class="empty">該当するサービスはありません。</div>';return}
+  $("list").innerHTML=rows.map(function(r){
+    var s=r.s, cls=r.e==="watch"?"part":r.e;
+    var tm=(s.from?hm(new Date(s.from).getTime())+" から":"開始時刻の記載なし")+" ・ "+(s.end||"終了未定");
+    return '<div class="row"><span class="pill '+cls+'">'+LBL[r.e]+'</span><div><div class="nm">'+esc(s.n)+'<small>'+esc(s.c)+'</small></div>'+
+      '<div class="tm">'+esc(tm)+'</div>'+(s.nt?'<div class="nt">'+esc(s.nt)+'</div>':'')+'</div></div>';
+  }).join("");
+}
+function renderFeed(now){
+  var f=S.feed.slice().sort(function(a,b){return new Date(b.t)-new Date(a.t)});
+  $("feed").innerHTML=f.map(function(e){
+    var ms=new Date(e.t).getTime(), isNew=now-ms<10*60000;
+    return '<div class="ev'+(isNew?' new':'')+'"><span class="t mono">'+hm(ms)+'</span><p>'+esc(e.x)+'</p></div>';
+  }).join("");
+}
+function renderAll(){
+  var now=Date.now();
+  renderSteps();renderFacts();renderHead(now);renderTiles(now);renderCats();renderList(now);renderFeed(now);
+  var u=S.meta.updatedAt?new Date(S.meta.updatedAt).getTime():0;
+  $("updated").textContent=u?hm(u):"--:--";
+}
+
+/* データ取得 */
+function load(){
+  lastFetch=Date.now(); nextAt=lastFetch+REFRESH;
+  $("fetched").textContent=hms(lastFetch);
+  if(!db){renderAll();return Promise.resolve()}
+  return Promise.all([db.doc("meta/main").get(),db.collection("services").get(),db.collection("feed").get()]).then(function(r){
+    var m=r[0].exists?r[0].data():null;
+    if(m){
+      var meta=Object.assign({},FB_META,m);
+      if(typeof m.facts==="string"){try{meta.facts=JSON.parse(m.facts)}catch(e){meta.facts=FB_META.facts}}
+      S.meta=meta;
+    }
+    if(!r[1].empty)S.sv=r[1].docs.map(function(d){return d.data()});
+    if(!r[2].empty)S.feed=r[2].docs.map(function(d){return d.data()});
+    $("err").hidden=true; renderAll();
+  }).catch(function(){
+    $("err").hidden=false;$("err").textContent="最新データを取得できませんでした。控えの内容を表示しています。30秒後に再試行します。";
+    renderAll();
+  });
+}
+
+/* 1秒ごとの描画 */
+function tick(){
+  var now=Date.now();
+  $("now").textContent=hms(now);
+  $("date").textContent=tz(now,{month:"numeric",day:"numeric",weekday:"short"})+" 日本時間";
+  renderCountdown(now);
+  var left=Math.max(0,nextAt-now);
+  $("prog").style.width=(100-left/REFRESH*100)+"%";
+  $("next").textContent="次の更新まで "+Math.ceil(left/1000)+"秒";
+  if(left===0){load()}
+}
+
+document.addEventListener("click",function(e){
+  var b=e.target.closest(".chip");
+  if(b){
+    if(b.dataset.f){S.filter=b.dataset.f;[].forEach.call(document.querySelectorAll(".chip[data-f]"),function(x){x.setAttribute("aria-pressed",x===b)})}
+    if(b.dataset.c){S.cat=b.dataset.c;[].forEach.call(document.querySelectorAll(".chip[data-c]"),function(x){x.setAttribute("aria-pressed",x===b)})}
+    renderList(Date.now());return;
+  }
+  if(e.target.id==="refresh")load();
+});
+$("q").addEventListener("input",function(e){S.q=e.target.value;renderList(Date.now())});
+
+renderAll();tick();setInterval(tick,1000);
+if(window.claude&&claude.use){
+  claude.use("db").then(function(d){db=d;if(db)load()}).catch(function(){});
+}
+})();
+</script>
