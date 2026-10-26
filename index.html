@@ -343,17 +343,17 @@ a.mi{text-decoration:none;box-sizing:border-box}
     <div class="bal-g" id="balG"></div>
     <div class="bal-add"><h3>＋ 自分専用のパラメーター</h3><button class="bal-plus" id="balAdd" type="button">＋ 追加</button></div>
     <div class="bal-form" id="balForm" hidden>
+      <b id="cuH" style="font-size:13px">パラメーターを追加</b>
       <label>題名<input type="text" id="cuT" maxlength="30" placeholder="例:睡眠の質"></label>
-      <label>値の名前<input type="text" id="cuN" maxlength="12" placeholder="例:快眠度"></label>
+      <div class="row"><label style="flex:1 1 140px">低い値の名前(1側)<input type="text" id="cuL" maxlength="14" placeholder="例:眠れない"></label><label style="flex:1 1 140px">高い値の名前(10側)<input type="text" id="cuR" maxlength="14" placeholder="例:ぐっすり"></label></div>
       <label>説明文<textarea id="cuD" maxlength="200" placeholder="何を、どんな基準で1〜10にするか"></textarea></label>
       <label>値(1〜10)<input type="range" id="cuV" min="1" max="10" step="1" value="5"><span id="cuVv" class="mono">5</span></label>
       <div class="bal-err" id="cuE" role="alert" hidden></div>
-      <div class="row"><button class="bal-plus" id="cuS" type="button">💾 保存</button><button class="bal-bt" id="cuC" type="button">キャンセル</button></div>
+      <div class="row"><button class="bal-plus" id="cuS" type="button">💾 保存</button><button class="bal-bt" id="cuC" type="button">キャンセル</button><button class="bal-bt" id="cuX" type="button" hidden>この項目を初期値に戻す</button></div>
     </div>
-    <div class="bal-g" id="balCu"></div>
-    <p class="note" id="balCuN" hidden>※自分専用のパラメーターは、お使いの端末の中にだけ保存され、他の人には見えません。上の総合メーターの平均には含まれません。</p>
-    <p class="note" style="margin-top:10px">※<b>実測データではありません。</b>編集側の主観にもとづく<b>暫定の目安</b>で、統計・調査の裏づけはありません。針の位置は、PHPの脆弱性対応など実際の出来事とも連動していません。「自分の見立てに調整」で、お使いの端末の中だけ値を変えられます(保存は端末内のみ)。</p>
-    <div style="margin-top:8px"><button class="bal-bt" id="balEdit" type="button">🎚 自分の見立てに調整</button> <button class="bal-bt" id="balReset" type="button" hidden>初期値に戻す</button></div>
+    <p class="note" id="balCuN" hidden>※追加したパラメーターと編集内容は、お使いの端末の中にだけ保存され、他の人には見えません。上の総合メーターの平均には、追加したパラメーターは含まれません。</p>
+    <p class="note" style="margin-top:10px">※<b>実測データではありません。</b>編集側の主観にもとづく<b>暫定の目安</b>で、統計・調査の裏づけはありません。針の位置は、PHPの脆弱性対応など実際の出来事とも連動していません。各カードの✏で題名・両端の名前・説明・値を編集でき、「＋ 追加」で自分専用のパラメーターも作れます(保存は端末内のみ)。</p>
+    <div style="margin-top:8px"><button class="bal-bt" id="balEdit" type="button">🎚 スライダーで調整</button> <button class="bal-bt" id="balReset" type="button" hidden>初期値に戻す</button></div>
   </section>
 
   <section class="card" id="wd">
@@ -663,15 +663,18 @@ var ITEMS=[
 {n:"文化活動",v:4,l:"人間が創る",r:"AIが創る",w:"制作の補助や生成作品が増えたが、企画・評価・著作の判断は人間中心。"},
 {n:"スポーツ",v:2,l:"人間が主役",r:"AIが主役",w:"分析・審判補助・用具の改良にAIが入るが、競技の主役は選手。"}
 ];
-var KEY="php_bal_v1",user=null;
-try{var t=JSON.parse(localStorage.getItem(KEY)||"null");if(t&&t.length===ITEMS.length)user=t}catch(e){}
-function val(i){return user?user[i]:ITEMS[i].v}
+var KEY="php_bal_v1",OK="php_bal_ov_v1",CK="php_bal_custom_v1";
+var user=null,ov={},cu=[];
+function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function wr(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+var t0=rd(KEY);if(t0&&t0.length===ITEMS.length)user=t0;
+var o0=rd(OK);if(o0&&typeof o0==="object"&&!Array.isArray(o0))ov=o0;
+var c0=rd(CK);if(Array.isArray(c0))cu=c0.filter(function(x){return x&&typeof x.t==="string"}).slice(0,20).map(function(x){return{t:x.t,l:x.l||"",r:x.r||"",d:x.d||"",v:Math.min(10,Math.max(1,+x.v||5))}});
 function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 function pt(a,r){var t=a*Math.PI/180;return[100+r*Math.cos(t),100-r*Math.sin(t)]}
 function arc(a1,a2,r){var p=pt(a1,r),q=pt(a2,r);return"M"+p[0].toFixed(2)+" "+p[1].toFixed(2)+"A"+r+" "+r+" 0 0 1 "+q[0].toFixed(2)+" "+q[1].toFixed(2)}
-/* 値 → 針の角度(左端=1、右端=10) */
 function rot(v){return -90+(v-1)/9*180}
-function gauge(big,label){
+function gauge(label){
   var s=el("svg",{viewBox:"0 0 200 112","class":"bal-svg",role:"img","aria-label":label});
   el("path",{d:arc(180,0,68),"class":"bal-trk"},s);
   el("path",{d:arc(180,90,68),"class":"bal-h"},s);
@@ -682,68 +685,72 @@ function gauge(big,label){
   el("circle",{cx:100,cy:100,r:6,"class":"bal-hub"},s);
   s._g=g;return s}
 function setNd(svg,v){svg._g.style.transform="rotate("+rot(v)+"deg)"}
-var G=document.getElementById("balG"),M=document.getElementById("balMain"),SM=document.getElementById("balSum");
+var G=document.getElementById("balG"),M=document.getElementById("balMain"),SM=document.getElementById("balSum"),FM=document.getElementById("balForm");
 if(!G)return;
-var cells=[],edit=false;
-var mainSvg=gauge(true,"総合");M.appendChild(mainSvg);
+function $b(i){return document.getElementById(i)}
+var mainSvg=gauge("総合");mainSvg._g.style.transform="rotate("+rot(5.5)+"deg)";M.appendChild(mainSvg);
+function mkBtn(txt,label,fn){var b=document.createElement("button");b.type="button";b.className="bal-ib";b.textContent=txt;b.setAttribute("aria-label",label);b.addEventListener("click",fn);return b}
+/* 1枚のカード。spec: get()→{t,l,r,w,v} / setV(v) / edit() / del()(任意) / slider(常時表示か) */
+function card(spec,cls){
+  var c=document.createElement("div");c.className="bal-c"+(cls?" "+cls:"");
+  var h=document.createElement("h3"),ti=document.createElement("span"),rt=document.createElement("span");rt.className="bal-cu-t";
+  var bv=document.createElement("b");rt.appendChild(bv);
+  var eb=mkBtn("✏","編集",function(){spec.edit()});rt.appendChild(eb);
+  if(spec.del){var db=mkBtn("🗑","削除",function(){if(db.dataset.arm){spec.del()}else{db.dataset.arm=1;db.textContent="本当に削除?";setTimeout(function(){delete db.dataset.arm;db.textContent="🗑"},3000)}});rt.appendChild(db)}
+  h.appendChild(ti);h.appendChild(rt);c.appendChild(h);
+  var d0=spec.get(),sv=gauge(d0.t);setNd(sv,5.5);c.appendChild(sv);
+  var en=document.createElement("div");en.className="bal-ends";en.innerHTML="<span></span><span></span>";c.appendChild(en);
+  var w=document.createElement("p");w.className="bal-why";c.appendChild(w);
+  var rg=document.createElement("input");rg.type="range";rg.min=1;rg.max=10;rg.step=1;rg.hidden=!spec.slider;
+  rg.addEventListener("input",function(){spec.setV(+rg.value);paint()});c.appendChild(rg);
+  function paint(){var d=spec.get();ti.textContent=d.t;eb.setAttribute("aria-label",d.t+"を編集");bv.textContent=d.v+"/10";setNd(sv,d.v);
+    en.children[0].textContent=d.l?"← "+d.l:"";en.children[1].textContent=d.r?d.r+" →":"";w.textContent=d.w||"";w.hidden=!d.w;rg.value=d.v;rg.setAttribute("aria-label",d.t+"の値")}
+  return{el:c,rg:rg,paint:paint}}
+var cells=[],editMode=false;
+function val(i){return user?user[i]:ITEMS[i].v}
+function info(i){var o=ov[i]||{},it=ITEMS[i];return{t:o.t||it.n,l:o.l!=null?o.l:it.l,r:o.r!=null?o.r:it.r,w:o.w!=null?o.w:it.w,v:val(i)}}
 ITEMS.forEach(function(it,i){
-  var c=document.createElement("div");c.className="bal-c";
-  var h=document.createElement("h3");h.innerHTML="<span></span><b></b>";h.firstChild.textContent=it.n;c.appendChild(h);
-  var s=gauge(false,it.n);c.appendChild(s);
-  var e=document.createElement("div");e.className="bal-ends";e.innerHTML="<span></span><span></span>";e.children[0].textContent="← "+it.l;e.children[1].textContent=it.r+" →";c.appendChild(e);
-  var w=document.createElement("p");w.className="bal-why";w.textContent=it.w;c.appendChild(w);
-  var r=document.createElement("input");r.type="range";r.min=1;r.max=10;r.step=1;r.hidden=true;r.setAttribute("aria-label",it.n+"の評価");
-  r.addEventListener("input",function(){if(!user)user=ITEMS.map(function(x){return x.v});user[i]=+r.value;try{localStorage.setItem(KEY,JSON.stringify(user))}catch(e){}paint(true)});
-  c.appendChild(r);G.appendChild(c);cells.push({s:s,b:h.querySelector("b"),r:r})});
-function paint(){
-  var sum=0;cells.forEach(function(c,i){var v=val(i);sum+=v;c.b.textContent=v+"/10";setNd(c.s,v);c.r.value=v});
+  var cd=card({get:function(){return info(i)},setV:function(v){if(!user)user=ITEMS.map(function(x){return x.v});user[i]=v;wr(KEY,user);summ();updRs()},edit:function(){openForm({k:"b",i:i})},slider:false});
+  G.appendChild(cd.el);cells.push(cd)});
+function summ(){
+  var sum=0,hi=0,lo=0;ITEMS.forEach(function(x,i){var v=val(i);sum+=v;if(v>=6)hi++;else lo++});
   var avg=sum/ITEMS.length;setNd(mainSvg,avg);
   var side=avg<4.5?"人間が主導寄り":avg>6.5?"AIが主導寄り":"おおむね拮抗";
-  var hi=0,lo=0;cells.forEach(function(c,i){var v=val(i);if(v>=6)hi++;else if(v<=5)lo++});
   SM.innerHTML="<div>総合(10項目の平均)</div><div><b>"+avg.toFixed(1)+" / 10</b>・"+side+"</div><div style=\"margin-top:6px;color:var(--mute)\">AI主導寄り(6以上)<b> "+hi+" </b>項目/人間主導寄り(5以下)<b> "+lo+" </b>項目"+(user?"<br>※あなたの調整値で表示中":"<br>※編集側の暫定値で表示中")+"</div>"}
-/* 針は最初に中央から動かす */
-cells.forEach(function(c){setNd(c.s,5.5)});setNd(mainSvg,5.5);
-setTimeout(paint,150);
-document.getElementById("balEdit").addEventListener("click",function(){edit=!edit;cells.forEach(function(c){c.r.hidden=!edit});this.textContent=edit?"✔ 調整を終える":"🎚 自分の見立てに調整";document.getElementById("balReset").hidden=!edit&&!user});
-var rs=document.getElementById("balReset");rs.hidden=!user;
-rs.addEventListener("click",function(){user=null;try{localStorage.removeItem(KEY)}catch(e){}paint();rs.hidden=true});
-document.getElementById("balEdit").addEventListener("click",function(){if(user)rs.hidden=false});
-
-/* ---- 自分専用のパラメーター ---- */
-var CK="php_bal_custom_v1",cu=[];
-try{var c0=JSON.parse(localStorage.getItem(CK)||"[]");if(Array.isArray(c0))cu=c0.filter(function(x){return x&&typeof x.t==="string"}).slice(0,20)}catch(e){}
-function saveCu(){try{localStorage.setItem(CK,JSON.stringify(cu))}catch(e){}}
-var CG=document.getElementById("balCu"),FM=document.getElementById("balForm"),editId=null;
-function $b(i){return document.getElementById(i)}
+function paintAll(){cells.forEach(function(c){c.paint()});summ()}
+var cuCells=[];
 function renderCu(){
-  CG.innerHTML="";$b("balCuN").hidden=!cu.length;
+  cuCells.forEach(function(c){c.el.remove()});cuCells=[];$b("balCuN").hidden=!cu.length&&!Object.keys(ov).length;
   cu.forEach(function(it){
-    var c=document.createElement("div");c.className="bal-c cu";
-    var h=document.createElement("h3");var a=document.createElement("span");a.textContent=it.t;
-    var r=document.createElement("span");r.className="bal-cu-t";
-    var b=document.createElement("b");b.textContent=(it.n?it.n+" ":"")+it.v+"/10";
-    var eb=document.createElement("button");eb.type="button";eb.className="bal-ib";eb.textContent="✏";eb.setAttribute("aria-label",it.t+"を編集");
-    var db=document.createElement("button");db.type="button";db.className="bal-ib";db.textContent="🗑";db.setAttribute("aria-label",it.t+"を削除");
-    r.appendChild(b);r.appendChild(eb);r.appendChild(db);h.appendChild(a);h.appendChild(r);c.appendChild(h);
-    var s=gauge(false,it.t);c.appendChild(s);setNd(s,5.5);
-    if(it.d){var w=document.createElement("p");w.className="bal-why";w.textContent=it.d;c.appendChild(w)}
-    var rg=document.createElement("input");rg.type="range";rg.min=1;rg.max=10;rg.step=1;rg.value=it.v;rg.setAttribute("aria-label",it.t+"の値");
-    rg.addEventListener("input",function(){it.v=+rg.value;b.textContent=(it.n?it.n+" ":"")+it.v+"/10";setNd(s,it.v);saveCu()});
-    c.appendChild(rg);
-    eb.addEventListener("click",function(){openForm(it)});
-    db.addEventListener("click",function(){if(db.dataset.arm){cu=cu.filter(function(x){return x!==it});saveCu();renderCu()}else{db.dataset.arm=1;db.textContent="本当に削除?";setTimeout(function(){delete db.dataset.arm;db.textContent="🗑"},3000)}});
-    CG.appendChild(c);setTimeout(function(){setNd(s,it.v)},60)});
-}
-function openForm(it){editId=it||null;$b("cuT").value=it?it.t:"";$b("cuN").value=it?it.n:"";$b("cuD").value=it?it.d:"";$b("cuV").value=it?it.v:5;$b("cuVv").textContent=$b("cuV").value;$b("cuE").hidden=true;FM.hidden=false;$b("cuT").focus()}
-$b("balAdd").addEventListener("click",function(){if(cu.length>=20&&!editId){return}openForm(null)});
-$b("cuC").addEventListener("click",function(){FM.hidden=true;editId=null});
+    var cd=card({get:function(){return{t:it.t,l:it.l,r:it.r,w:it.d,v:it.v}},setV:function(v){it.v=v;wr(CK,cu)},edit:function(){openForm({k:"c",o:it})},del:function(){cu=cu.filter(function(x){return x!==it});wr(CK,cu);renderCu()},slider:true},"cu");
+    G.appendChild(cd.el);cuCells.push(cd);cd.paint()})}
+/* 編集・追加フォーム */
+var tgt=null;
+function openForm(t){tgt=t;var d,isB=t&&t.k==="b";
+  if(!t){d={t:"",l:"",r:"",w:"",v:5}}else if(isB){d=info(t.i)}else{d={t:t.o.t,l:t.o.l,r:t.o.r,w:t.o.d,v:t.o.v}}
+  $b("cuH").textContent=!t?"パラメーターを追加":isB?"「"+ITEMS[t.i].n+"」を編集":"パラメーターを編集";
+  $b("cuT").value=d.t;$b("cuL").value=d.l;$b("cuR").value=d.r;$b("cuD").value=d.w;$b("cuV").value=d.v;$b("cuVv").textContent=d.v;
+  $b("cuX").hidden=!isB;$b("cuE").hidden=true;FM.hidden=false;FM.scrollIntoView({block:"nearest"});$b("cuT").focus()}
+$b("balAdd").addEventListener("click",function(){if(cu.length>=20){var e=$b("cuE");openForm(null);e.textContent="追加できるのは20件までです。";e.hidden=false;return}openForm(null)});
+$b("cuC").addEventListener("click",function(){FM.hidden=true;tgt=null});
 $b("cuV").addEventListener("input",function(){$b("cuVv").textContent=this.value});
 $b("cuS").addEventListener("click",function(){
-  var t=$b("cuT").value.trim(),n=$b("cuN").value.trim(),d=$b("cuD").value.trim(),v=+$b("cuV").value,e=$b("cuE");
+  var t=$b("cuT").value.trim(),l=$b("cuL").value.trim(),r=$b("cuR").value.trim(),d=$b("cuD").value.trim(),v=+$b("cuV").value,e=$b("cuE");
   if(!t){e.textContent="題名を入力してください。";e.hidden=false;return}
-  if(editId){editId.t=t;editId.n=n;editId.d=d;editId.v=v}else{cu.push({t:t,n:n,d:d,v:v})}
-  saveCu();FM.hidden=true;editId=null;renderCu()});
-renderCu();
+  if(tgt&&tgt.k==="b"){var i=tgt.i;ov[i]={t:t,l:l,r:r,w:d};wr(OK,ov);if(!user)user=ITEMS.map(function(x){return x.v});user[i]=v;wr(KEY,user);paintAll();updRs()}
+  else if(tgt&&tgt.k==="c"){tgt.o.t=t;tgt.o.l=l;tgt.o.r=r;tgt.o.d=d;tgt.o.v=v;wr(CK,cu);renderCu()}
+  else{if(cu.length>=20){e.textContent="追加できるのは20件までです。";e.hidden=false;return}cu.push({t:t,l:l,r:r,d:d,v:v});wr(CK,cu);renderCu()}
+  FM.hidden=true;tgt=null});
+$b("cuX").addEventListener("click",function(){if(!tgt||tgt.k!=="b")return;var i=tgt.i;delete ov[i];wr(OK,Object.keys(ov).length?ov:null);if(user){user[i]=ITEMS[i].v;if(user.every(function(x,j){return x===ITEMS[j].v}))user=null;wr(KEY,user)}paintAll();updRs();FM.hidden=true;tgt=null});
+/* 全体の調整モード(スライダー表示)と初期値に戻す */
+var rs=$b("balReset");
+function updRs(){rs.hidden=!(user||Object.keys(ov).length)&&!editMode}
+$b("balEdit").addEventListener("click",function(){editMode=!editMode;cells.forEach(function(c){c.rg.hidden=!editMode});this.textContent=editMode?"✔ 調整を終える":"🎚 スライダーで調整";updRs()});
+rs.addEventListener("click",function(){user=null;ov={};wr(KEY,null);wr(OK,null);paintAll();updRs();renderCu()});
+cells.forEach(function(c){c.paint()});
+mainSvg._g.style.transform="rotate("+rot(5.5)+"deg)";
+setTimeout(function(){paintAll()},150);
+renderCu();updRs();
 })();
 </script>
 
