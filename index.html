@@ -178,6 +178,20 @@ a.tb{text-decoration:none}
 .bal-bt:hover{border-color:var(--brand);color:var(--brand)}
 .bal-lg{display:flex;gap:12px;font-size:11px;color:var(--mute);flex-wrap:wrap;margin-top:4px}
 .bal-lg i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.bal-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.bal-add h3{margin:0;font-size:14px;flex:1 1 auto}
+.bal-plus{font:inherit;font-weight:700;font-size:13px;padding:7px 14px;border:1px solid var(--brand);border-radius:99px;background:var(--brand);color:#fff;cursor:pointer}
+.bal-plus:focus-visible,.bal-bt:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.bal-form{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:var(--bg);display:grid;gap:8px}
+.bal-form label{display:grid;gap:3px;font-size:12px;color:var(--mute)}
+.bal-form input[type=text],.bal-form textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;width:100%}
+.bal-form textarea{min-height:64px;resize:vertical}
+.bal-form .row{display:flex;gap:8px;flex-wrap:wrap}
+.bal-c.cu{border-style:dashed}
+.bal-ib{background:none;border:0;cursor:pointer;color:var(--mute);font-size:14px;padding:0 4px}
+.bal-ib:hover{color:var(--brand)}
+.bal-cu-t{display:flex;gap:2px;align-items:center;flex-shrink:0}
+.bal-err{font-size:12px;color:var(--stop)}
 .wrap{zoom:var(--z,1)}
 a.mi{text-decoration:none;box-sizing:border-box}
 .info h2{margin:0 0 6px}
@@ -327,6 +341,17 @@ a.mi{text-decoration:none;box-sizing:border-box}
     </div>
     <div class="bal-lg"><span><i style="background:var(--brand)"></i>人間が主導(1〜5)</span><span><i style="background:var(--part)"></i>AIが主導(6〜10)</span></div>
     <div class="bal-g" id="balG"></div>
+    <div class="bal-add"><h3>＋ 自分専用のパラメーター</h3><button class="bal-plus" id="balAdd" type="button">＋ 追加</button></div>
+    <div class="bal-form" id="balForm" hidden>
+      <label>題名<input type="text" id="cuT" maxlength="30" placeholder="例:睡眠の質"></label>
+      <label>値の名前<input type="text" id="cuN" maxlength="12" placeholder="例:快眠度"></label>
+      <label>説明文<textarea id="cuD" maxlength="200" placeholder="何を、どんな基準で1〜10にするか"></textarea></label>
+      <label>値(1〜10)<input type="range" id="cuV" min="1" max="10" step="1" value="5"><span id="cuVv" class="mono">5</span></label>
+      <div class="bal-err" id="cuE" role="alert" hidden></div>
+      <div class="row"><button class="bal-plus" id="cuS" type="button">💾 保存</button><button class="bal-bt" id="cuC" type="button">キャンセル</button></div>
+    </div>
+    <div class="bal-g" id="balCu"></div>
+    <p class="note" id="balCuN" hidden>※自分専用のパラメーターは、お使いの端末の中にだけ保存され、他の人には見えません。上の総合メーターの平均には含まれません。</p>
     <p class="note" style="margin-top:10px">※<b>実測データではありません。</b>編集側の主観にもとづく<b>暫定の目安</b>で、統計・調査の裏づけはありません。針の位置は、PHPの脆弱性対応など実際の出来事とも連動していません。「自分の見立てに調整」で、お使いの端末の中だけ値を変えられます(保存は端末内のみ)。</p>
     <div style="margin-top:8px"><button class="bal-bt" id="balEdit" type="button">🎚 自分の見立てに調整</button> <button class="bal-bt" id="balReset" type="button" hidden>初期値に戻す</button></div>
   </section>
@@ -683,6 +708,42 @@ document.getElementById("balEdit").addEventListener("click",function(){edit=!edi
 var rs=document.getElementById("balReset");rs.hidden=!user;
 rs.addEventListener("click",function(){user=null;try{localStorage.removeItem(KEY)}catch(e){}paint();rs.hidden=true});
 document.getElementById("balEdit").addEventListener("click",function(){if(user)rs.hidden=false});
+
+/* ---- 自分専用のパラメーター ---- */
+var CK="php_bal_custom_v1",cu=[];
+try{var c0=JSON.parse(localStorage.getItem(CK)||"[]");if(Array.isArray(c0))cu=c0.filter(function(x){return x&&typeof x.t==="string"}).slice(0,20)}catch(e){}
+function saveCu(){try{localStorage.setItem(CK,JSON.stringify(cu))}catch(e){}}
+var CG=document.getElementById("balCu"),FM=document.getElementById("balForm"),editId=null;
+function $b(i){return document.getElementById(i)}
+function renderCu(){
+  CG.innerHTML="";$b("balCuN").hidden=!cu.length;
+  cu.forEach(function(it){
+    var c=document.createElement("div");c.className="bal-c cu";
+    var h=document.createElement("h3");var a=document.createElement("span");a.textContent=it.t;
+    var r=document.createElement("span");r.className="bal-cu-t";
+    var b=document.createElement("b");b.textContent=(it.n?it.n+" ":"")+it.v+"/10";
+    var eb=document.createElement("button");eb.type="button";eb.className="bal-ib";eb.textContent="✏";eb.setAttribute("aria-label",it.t+"を編集");
+    var db=document.createElement("button");db.type="button";db.className="bal-ib";db.textContent="🗑";db.setAttribute("aria-label",it.t+"を削除");
+    r.appendChild(b);r.appendChild(eb);r.appendChild(db);h.appendChild(a);h.appendChild(r);c.appendChild(h);
+    var s=gauge(false,it.t);c.appendChild(s);setNd(s,5.5);
+    if(it.d){var w=document.createElement("p");w.className="bal-why";w.textContent=it.d;c.appendChild(w)}
+    var rg=document.createElement("input");rg.type="range";rg.min=1;rg.max=10;rg.step=1;rg.value=it.v;rg.setAttribute("aria-label",it.t+"の値");
+    rg.addEventListener("input",function(){it.v=+rg.value;b.textContent=(it.n?it.n+" ":"")+it.v+"/10";setNd(s,it.v);saveCu()});
+    c.appendChild(rg);
+    eb.addEventListener("click",function(){openForm(it)});
+    db.addEventListener("click",function(){if(db.dataset.arm){cu=cu.filter(function(x){return x!==it});saveCu();renderCu()}else{db.dataset.arm=1;db.textContent="本当に削除?";setTimeout(function(){delete db.dataset.arm;db.textContent="🗑"},3000)}});
+    CG.appendChild(c);setTimeout(function(){setNd(s,it.v)},60)});
+}
+function openForm(it){editId=it||null;$b("cuT").value=it?it.t:"";$b("cuN").value=it?it.n:"";$b("cuD").value=it?it.d:"";$b("cuV").value=it?it.v:5;$b("cuVv").textContent=$b("cuV").value;$b("cuE").hidden=true;FM.hidden=false;$b("cuT").focus()}
+$b("balAdd").addEventListener("click",function(){if(cu.length>=20&&!editId){return}openForm(null)});
+$b("cuC").addEventListener("click",function(){FM.hidden=true;editId=null});
+$b("cuV").addEventListener("input",function(){$b("cuVv").textContent=this.value});
+$b("cuS").addEventListener("click",function(){
+  var t=$b("cuT").value.trim(),n=$b("cuN").value.trim(),d=$b("cuD").value.trim(),v=+$b("cuV").value,e=$b("cuE");
+  if(!t){e.textContent="題名を入力してください。";e.hidden=false;return}
+  if(editId){editId.t=t;editId.n=n;editId.d=d;editId.v=v}else{cu.push({t:t,n:n,d:d,v:v})}
+  saveCu();FM.hidden=true;editId=null;renderCu()});
+renderCu();
 })();
 </script>
 
