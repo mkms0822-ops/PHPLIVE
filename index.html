@@ -75,6 +75,8 @@ h1{font-size:22px;font-weight:900;letter-spacing:.01em}
 /* main */
 .main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.sortsel{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:4px 10px;cursor:pointer}
+.gh{font-size:12px;font-weight:800;color:var(--mute);padding:8px 4px 2px;letter-spacing:.1em}
 .chip{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:4px 12px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
 .chip:focus-visible,input:focus-visible,.sub button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
@@ -235,6 +237,14 @@ a.mi{text-decoration:none;box-sizing:border-box}
         <button class="chip" data-f="ok" aria-pressed="false" type="button">復旧済み</button>
         <button class="chip" data-f="end" aria-pressed="false" type="button">サービス終了</button>
         <input id="q" type="search" placeholder="サービス名で検索" aria-label="サービス名で検索">
+        <select id="sort" class="sortsel" aria-label="並び替え">
+          <option value="state">並び替え:状態順</option>
+          <option value="new">開始が新しい順</option>
+          <option value="old">開始が古い順</option>
+          <option value="kana">五十音順(あ→ん)</option>
+          <option value="kanar">五十音順(ん→あ)</option>
+          <option value="cat">分類順</option>
+        </select>
       </div>
       <div class="tools" id="cats"></div>
       <div class="list" id="list"></div>
@@ -366,22 +376,58 @@ function renderCats(){
     return '<button class="chip" data-c="'+esc(c)+'" aria-pressed="'+(S.cat===c)+'" type="button">'+(c==="all"?"全分類":esc(c))+'</button>';
   }).join("");
 }
+var YOMI=[["文豪","ぶんごう"],["刀剣","とうけん"],["翡翠","ひすい"],["小説家","しょうせつか"],["高市","たかいち"],["阿部寛","あべひろし"],["名探偵","めいたんてい"],["神姫","しんき"],["麻雀","まーじゃん"],["財務省","ざいむしょう"],["厚生労働省","こうせいろうどうしょう"],["筑波大学","つくばだいがく"],["福知山","ふくちやま"],["西日本","にしにほん"],["阪神","はんしん"],["大阪府","おおさかふ"],["大阪市","おおさかし"],["国土交通省","こくどこうつうしょう"],["金融機関","きんゆうきかん"],["自治体","じちたい"],["沖縄県","おきなわけん"],["京阪","けいはん"],["任天堂","にんてんどう"],["三菱","みつびし"],["僕の","ぼくの"],["文学","ぶんがく"],["文部科学省","もんぶかがくしょう"],["消費者庁","しょうひしゃちょう"],["国税庁","こくぜいちょう"],["法テラス","ほうてらす"],["気象庁","きしょうちょう"],["東京外国語大学","とうきょうがいこくごだいがく"],["国立天文台","こくりつてんもんだい"],["福岡県","ふくおかけん"],["青森県","あおもりけん"],["静岡県","しずおかけん"],["滋賀県","しがけん"],["仙台市","せんだいし"],["網走市","あばしりし"],["福島中央","ふくしまちゅうおう"],["福島県","ふくしまけん"],["神奈川","かながわ"],["山梨県","やまなしけん"],["英国","えいこく"],["楽天","らくてん"],["銀のさら","ぎんのさら"],["第四北越","だいしほくえつ"],["小田急","おだきゅう"],["日本航空","にほんこうくう"],["岐阜大学","ぎふだいがく"],["中央高等学院","ちゅうおうこうとうがくいん"],["全国生活","ぜんこくせいかつ"],["京都サンガ","きょうとさんが"],["通販","つうはん"],["佐川急便","さがわきゅうびん"],["札幌市","さっぽろし"],["日野","ひの"]];
+var KROW=[["あ","ぁあぃいぅうぇえぉお"],["か","かがきぎくぐけげこご"],["さ","さざしじすずせぜそぞ"],["た","ただちぢっつづてでとど"],["な","なにぬねの"],["は","はばぱひびぴふぶぷへべぺほぼぽ"],["ま","まみむめも"],["や","ゃやゅゆょよ"],["ら","らりるれろ"],["わ","ゎわゐゑをんゔ"]];
+function toKey(n){
+  var t=n.normalize("NFKC");
+  for(var i=0;i<YOMI.length;i++){if(t.indexOf(YOMI[i][0])===0){t=YOMI[i][1]+t.slice(YOMI[i][0].length);break}}
+  t=t.replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-96)});
+  t=t.replace(/^[^0-9A-Za-z\u3041-\u3096]+/,"");
+  return t.toLowerCase();
+}
+function kanaHead(key){
+  var c=key.charAt(0);
+  for(var i=0;i<KROW.length;i++){if(KROW[i][1].indexOf(c)>=0)return KROW[i][0]+"行"}
+  return /[0-9a-z]/.test(c)?"英数字":"その他(漢字ほか)";
+}
+function kanaRank(key){
+  var h=kanaHead(key);
+  if(h==="英数字")return 98;
+  if(h.indexOf("その他")===0)return 99;
+  for(var i=0;i<KROW.length;i++){if(KROW[i][0]+"行"===h)return i}
+  return 99;
+}
+var JA=new Intl.Collator("ja");
+function cmpState(a,b){return ORD[a.e]-ORD[b.e] || (new Date(a.s.from||0)-new Date(b.s.from||0)) || a.s.n.localeCompare(b.s.n,"ja")}
+function cmpKana(a,b){return kanaRank(a.k)-kanaRank(b.k) || JA.compare(a.k,b.k)}
 function renderList(now){
   var q=S.q.trim().toLowerCase();
-  var rows=S.sv.map(function(s){return{s:s,e:eff(s,now)}}).filter(function(r){
+  var mode=S.sort||"state";
+  var rows=S.sv.map(function(s){return{s:s,e:eff(s,now),k:toKey(s.n),t:s.from?new Date(s.from).getTime():null}}).filter(function(r){
     if(S.filter!=="all"&&r.e!==S.filter)return false;
     if(S.cat!=="all"&&r.s.c!==S.cat)return false;
     if(q&&(r.s.n+" "+(r.s.nt||"")).toLowerCase().indexOf(q)<0)return false;
     return true;
   }).sort(function(a,b){
-    return ORD[a.e]-ORD[b.e] || (new Date(a.s.from||0)-new Date(b.s.from||0)) || a.s.n.localeCompare(b.s.n,"ja");
+    if(mode==="new"||mode==="old"){
+      if(a.t===null&&b.t===null)return cmpKana(a,b);
+      if(a.t===null)return 1; if(b.t===null)return -1;
+      return (mode==="new"?b.t-a.t:a.t-b.t)||cmpKana(a,b);
+    }
+    if(mode==="kana")return cmpKana(a,b);
+    if(mode==="kanar")return -cmpKana(a,b);
+    if(mode==="cat")return JA.compare(a.s.c,b.s.c)||cmpState(a,b);
+    return cmpState(a,b);
   });
   $("cnt").textContent=rows.length+" 件表示 / 掲載 "+S.sv.length+" 件";
   if(!rows.length){$("list").innerHTML='<div class="empty">該当するサービスはありません。</div>';return}
+  var last="";
   $("list").innerHTML=rows.map(function(r){
-    var s=r.s, cls=r.e==="watch"?"part":r.e;
+    var s=r.s, cls=r.e==="watch"?"part":r.e, head="";
+    var g=(mode==="kana"||mode==="kanar")?kanaHead(r.k):(mode==="cat"?s.c:"");
+    if(g&&g!==last){head='<div class="gh">'+esc(g)+'</div>';last=g}
     var tm=(s.from?hm(new Date(s.from).getTime())+" から":"開始時刻の記載なし")+" ・ "+(s.end||"終了未定");
-    return '<div class="row"><span class="pill '+cls+'">'+LBL[r.e]+'</span><div><div class="nm">'+esc(s.n)+'<small>'+esc(s.c)+'</small></div>'+
+    return head+'<div class="row"><span class="pill '+cls+'">'+LBL[r.e]+'</span><div><div class="nm">'+esc(s.n)+'<small>'+esc(s.c)+'</small></div>'+
       '<div class="tm">'+esc(tm)+'</div>'+(s.nt?'<div class="nt">'+esc(s.nt)+'</div>':'')+'</div></div>';
   }).join("");
 }
@@ -450,6 +496,8 @@ document.addEventListener("click",function(e){
   if(e.target.id==="refresh")load();
 });
 $("q").addEventListener("input",function(e){S.q=e.target.value;renderList(Date.now())});
+$("sort").addEventListener("change",function(e){S.sort=e.target.value;try{localStorage.setItem("phpSort",S.sort)}catch(x){}renderList(Date.now())});
+try{var sv0=localStorage.getItem("phpSort");if(sv0&&[].some.call($("sort").options,function(o){return o.value===sv0})){S.sort=sv0;$("sort").value=sv0}}catch(x){}
 
 /* ヘッダーメニュー */
 var TK="phplive-theme",ZK="phplive-size",ZS={s:.9,m:1,l:1.18};
