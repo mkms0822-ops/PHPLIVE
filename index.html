@@ -157,7 +157,7 @@ a.tb{text-decoration:none}
 /* 人間×AI パワーバランス */
 .bal-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}
 .bal-c{border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0;background:var(--bg)}
-.bal-c h3{margin:0;font-size:13px;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.bal-c h3{margin:0;font-size:13px;display:flex;justify-content:space-between;gap:6px;align-items:flex-start;flex-wrap:wrap}
 .bal-c h3 b{font-family:var(--f-mono);font-size:15px}
 .bal-svg{display:block;width:100%;height:auto}
 .bal-trk{fill:none;stroke:var(--line);stroke-width:12}
@@ -188,9 +188,12 @@ a.tb{text-decoration:none}
 .bal-form textarea{min-height:64px;resize:vertical}
 .bal-form .row{display:flex;gap:8px;flex-wrap:wrap}
 .bal-c.cu{border-style:dashed}
-.bal-ib{background:none;border:0;cursor:pointer;color:var(--mute);font-size:14px;padding:0 4px}
-.bal-ib:hover{color:var(--brand)}
-.bal-cu-t{display:flex;gap:2px;align-items:center;flex-shrink:0}
+.bal-ib{font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-height:30px;white-space:nowrap}
+.bal-ib:hover{border-color:var(--brand);color:var(--brand)}
+.bal-ib.dl{color:var(--stop)}
+.bal-ib.dl:hover{border-color:var(--stop);color:var(--stop)}
+.bal-ib:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.bal-cu-t{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
 .bal-err{font-size:12px;color:var(--stop)}
 .wrap{zoom:var(--z,1)}
 a.mi{text-decoration:none;box-sizing:border-box}
@@ -352,7 +355,7 @@ a.mi{text-decoration:none;box-sizing:border-box}
       <div class="row"><button class="bal-plus" id="cuS" type="button">💾 保存</button><button class="bal-bt" id="cuC" type="button">キャンセル</button><button class="bal-bt" id="cuX" type="button" hidden>この項目を初期値に戻す</button></div>
     </div>
     <p class="note" id="balCuN" hidden>※追加したパラメーターと編集内容は、お使いの端末の中にだけ保存され、他の人には見えません。上の総合メーターの平均には、追加したパラメーターは含まれません。</p>
-    <p class="note" style="margin-top:10px">※<b>実測データではありません。</b>編集側の主観にもとづく<b>暫定の目安</b>で、統計・調査の裏づけはありません。針の位置は、PHPの脆弱性対応など実際の出来事とも連動していません。各カードの✏で題名・両端の名前・説明・値を編集でき、「＋ 追加」で自分専用のパラメーターも作れます(保存は端末内のみ)。</p>
+    <p class="note" style="margin-top:10px">※<b>実測データではありません。</b>編集側の主観にもとづく<b>暫定の目安</b>で、統計・調査の裏づけはありません。針の位置は、PHPの脆弱性対応など実際の出来事とも連動していません。各カードの「編集」ボタンで題名・両端の名前・説明・値を編集でき、「＋ 追加」で自分専用のパラメーターも作れます(保存は端末内のみ)。</p>
     <div style="margin-top:8px"><button class="bal-bt" id="balEdit" type="button">🎚 スライダーで調整</button> <button class="bal-bt" id="balReset" type="button" hidden>初期値に戻す</button></div>
   </section>
 
@@ -695,8 +698,8 @@ function card(spec,cls){
   var c=document.createElement("div");c.className="bal-c"+(cls?" "+cls:"");
   var h=document.createElement("h3"),ti=document.createElement("span"),rt=document.createElement("span");rt.className="bal-cu-t";
   var bv=document.createElement("b");rt.appendChild(bv);
-  var eb=mkBtn("✏","編集",function(){spec.edit()});rt.appendChild(eb);
-  if(spec.del){var db=mkBtn("🗑","削除",function(){if(db.dataset.arm){spec.del()}else{db.dataset.arm=1;db.textContent="本当に削除?";setTimeout(function(){delete db.dataset.arm;db.textContent="🗑"},3000)}});rt.appendChild(db)}
+  var eb=mkBtn("編集","編集",function(){spec.edit()});rt.appendChild(eb);
+  if(spec.del){var db=mkBtn("削除","削除",function(){if(db.dataset.arm){spec.del()}else{db.dataset.arm=1;db.textContent="もう一度押すと削除";setTimeout(function(){delete db.dataset.arm;db.textContent="削除"},3000)}});db.classList.add("dl");rt.appendChild(db)}
   h.appendChild(ti);h.appendChild(rt);c.appendChild(h);
   var d0=spec.get(),sv=gauge(d0.t);setNd(sv,5.5);c.appendChild(sv);
   var en=document.createElement("div");en.className="bal-ends";en.innerHTML="<span></span><span></span>";c.appendChild(en);
