@@ -174,7 +174,7 @@ a.mi{text-decoration:none;box-sizing:border-box}
   <div class="mnu-in">
     <div class="mh"><b>メニュー</b><button class="mx" id="mnuX" type="button" aria-label="閉じる">✕</button></div>
     <div class="ms">ページ内の移動</div>
-    <button class="mi" data-go="top" type="button">⏱ カウントダウン・全体の状況</button>
+    <button class="mi" data-go="top" type="button">📅 経過日数・全体の状況</button>
     <button class="mi" data-go="facts-card" type="button">⚠ 脆弱性の要点</button>
     <button class="mi" data-go="sv" type="button">🛑 停止・メンテナンス中のサービス</button>
     <button class="mi" data-go="fd" type="button">🕒 できごとの記録</button>
@@ -211,8 +211,8 @@ a.mi{text-decoration:none;box-sizing:border-box}
 
   <section class="hero" id="top">
     <div class="card cd">
-      <div class="lbl" id="cdlbl">修正版の公開予定まで(日本時間 10/21 23:00)</div>
-      <div class="big mono" id="cd">--:--:--</div>
+      <div class="lbl" id="cdlbl">PHP2Shell脆弱性の公表(日本時間 10/21)から経過</div>
+      <div class="big mono" id="cd">--日</div>
       <div class="head" id="headline"></div>
       <div class="steps" id="steps"></div>
     </div>
@@ -343,16 +343,12 @@ function renderHead(now){
   $("headline").textContent=h;
 }
 function renderCountdown(now){
-  var d=PATCH_AT-now;
-  if(d>0){
-    var s=Math.floor(d/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
-    $("cd").textContent=[h,m,x].map(function(v){return("0"+v).slice(-2)}).join(":");
-    $("cdlbl").textContent="修正版の公開予定まで(日本時間 10/21 23:00)";
-  }else{
-    var e=Math.floor(-d/1000),H=Math.floor(e/3600),M=Math.floor(e%3600/60),X=e%60;
-    $("cd").textContent="+"+[H,M,X].map(function(v){return("0"+v).slice(-2)}).join(":");
-    $("cdlbl").textContent="公開予定時刻から経過";
-  }
+  /* PHP2Shell の公表(日本時間 10/21)からの経過日数。日本時間の日付で数える */
+  var J=function(t){var d=new Date(t+9*3600000);return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())};
+  var n=Math.round((J(now)-J(PATCH_AT))/86400000);
+  if(n<0)n=0;
+  $("cd").textContent=n+"日";
+  $("cdlbl").textContent="PHP2Shell脆弱性の公表(日本時間 10/21)から経過";
 }
 function renderTiles(now){
   var c={stop:0,plan:0,part:0,ok:0};
