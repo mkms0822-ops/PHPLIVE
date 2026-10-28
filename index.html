@@ -1,4 +1,4 @@
-<title>PHP脆弱性 LIVE</title>
+<title>サイバー攻撃・脆弱性状況ボード</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -41,6 +41,9 @@ h1,h2,h3{margin:0;text-wrap:balance}
 @keyframes pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.live i{animation:none}}
 h1{font-size:22px;font-weight:900;letter-spacing:.01em}
+.elapsed{display:inline-flex;align-items:baseline;gap:6px;background:var(--stop-soft);color:var(--stop);border:1px solid var(--stop);border-radius:99px;padding:2px 12px;margin-right:auto}
+.elapsed small{font-size:11px;font-weight:700}
+.elapsed b{font-size:15px;font-weight:700}
 .clock{text-align:right;line-height:1.3}
 .clock b{font-size:22px}
 .clock small{display:block;color:var(--mute);font-size:12px}
@@ -49,6 +52,18 @@ h1{font-size:22px;font-weight:900;letter-spacing:.01em}
 .sub{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--mute);font-size:12px}
 .sub button{font:inherit;color:var(--brand);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 /* hero */
+.vt{width:100%;border-collapse:collapse;font-size:12.5px;line-height:1.6}
+.vt th{background:var(--brand-soft);color:var(--ink);text-align:left;padding:7px 8px;font-size:12px;position:sticky;top:0;white-space:nowrap}
+.vt td{vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}
+.vt .nm{font-weight:700;min-width:9em}
+.vt code{font-family:var(--f-mono);font-size:11.5px;word-break:break-all}
+.vt .sv{display:inline-block;font-size:11px;font-weight:700;border-radius:99px;padding:0 7px;white-space:nowrap}
+.vt .sv.r{background:var(--stop-soft);color:var(--stop)} .vt .sv.o{background:var(--plan-soft);color:var(--plan)} .vt .sv.g{background:var(--ok-soft);color:var(--ok)} .vt .sv.u{background:var(--part-soft);color:var(--part)}
+.vtw{overflow-x:auto;margin-top:8px}
+.vnew{margin:8px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.7}
+.vnew li{padding:5px 0;border-bottom:1px dashed var(--line)}
+.vnew time{font-family:var(--f-mono);font-size:11.5px;color:var(--mute);margin-right:6px}
+@media (max-width:700px){.vt thead{display:none}.vt,.vt tbody,.vt tr,.vt td{display:block;width:100%}.vt tr{border:1px solid var(--line);border-radius:8px;margin:0 0 10px;padding:4px 0}.vt td{border:0;padding:4px 10px}.vt td[data-l]::before{content:attr(data-l);display:block;font-size:11px;font-weight:700;color:var(--mute)}}
 .hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
 .cd{display:flex;flex-direction:column;gap:10px}
@@ -67,7 +82,7 @@ h1{font-size:22px;font-weight:900;letter-spacing:.01em}
 .facts dd{margin:0}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--plan-soft);color:var(--plan);margin-left:4px;white-space:nowrap}
 /* tiles */
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
 .tile b{font-size:34px;line-height:1.1}
 .tile span{font-size:12px;font-weight:700;color:var(--mute)}
@@ -230,9 +245,10 @@ a.mi{text-decoration:none;box-sizing:border-box}
   <div class="mnu-in">
     <div class="mh"><b>メニュー</b><button class="mx" id="mnuX" type="button" aria-label="閉じる">✕</button></div>
     <div class="ms">ページ内の移動</div>
-    <button class="mi" data-go="top" type="button">📅 経過日数・全体の状況</button>
+    <button class="mi" data-go="sv" type="button">🛑 停止・再開の一覧(ヘッダー下)</button>
+    <button class="mi" data-go="top" type="button">📅 全体の状況</button>
     <button class="mi" data-go="facts-card" type="button">⚠ 脆弱性の要点</button>
-    <button class="mi" data-go="sv" type="button">🛑 停止・メンテナンス中のサービス</button>
+    <button class="mi" data-go="vuln" type="button">🧩 脆弱性一覧(状況と対処法)</button>
     <button class="mi" data-go="fd" type="button">🕒 できごとの記録</button>
     <button class="mi" data-go="bal" type="button">⚖ 人間とAIのパワーバランス</button>
     <button class="mi" data-go="src" type="button">📚 見方・出典</button>
@@ -252,8 +268,9 @@ a.mi{text-decoration:none;box-sizing:border-box}
   <header class="top">
     <div class="brandrow">
       <span class="live"><i></i>LIVE</span>
-      <h1>PHP脆弱性 緊急パッチ 状況ボード</h1>
+      <h1>サイバー攻撃・脆弱性状況ボード</h1>
     </div>
+    <div class="elapsed" title="PHP2Shell脆弱性の公表(日本時間10/21)からの日数"><small id="cdlbl">PHP2Shell公表から</small><b class="mono" id="cd">--日</b></div>
     <div class="clock mono"><b id="now">--:--:--</b><small id="date">日本時間</small></div>
   </header>
   <div class="bar" aria-hidden="true"><i id="prog"></i></div>
@@ -266,45 +283,7 @@ a.mi{text-decoration:none;box-sizing:border-box}
   </div>
   <div id="err" class="err" hidden></div>
 
-  <section class="hero" id="top">
-    <div class="card cd">
-      <div class="lbl" id="cdlbl">PHP2Shell脆弱性の公表(日本時間 10/21)から経過</div>
-      <div class="big mono" id="cd">--日</div>
-      <div class="head" id="headline"></div>
-      <div class="steps" id="steps"></div>
-    </div>
-    <div class="card" id="facts-card">
-      <h2>脆弱性の要点</h2>
-      <dl class="facts" id="facts"></dl>
-    </div>
-  </section>
-
   <section class="tiles" id="tiles"></section>
-  <section class="card gmo" id="gmo">
-    <details open>
-      <summary>お名前.com デスクトップクラウド:犯行声明と利用者の対処法<span class="dl">期限 27日12:00</span></summary>
-      <p><b>報道(26日12:07配信・テレビ朝日系)</b>:攻撃者を名乗る側が、100万ドル(約1億5,000万円余)を日本時間27日正午までに支払うよう要求。支払われなければ、利用者のパソコンのデータを公開または暗号化すると主張しています。攻撃側は「利用者PCのデータすべてにアクセスでき、バックドアを設置した」と主張していますが、<b>確認はとれていません</b>(要求額はセキュリティ会社S&amp;Jの分析にもとづく報道)。GMOは金銭の要求があったことを認め、<b>「攻撃者からの要求には応じません」</b>としています。期限の時刻に必ず攻撃が実行されるとは限りません。</p>
-      <h3>まず、お名前.com デスクトップクラウド(デスクトップVPS)を使っている方</h3>
-      <ol>
-        <li><span class="tg">公式</span>サーバーに使っていない別の端末から、取引ツール・取引口座・関連サービスのパスワードを変更し、ログイン中の接続を切る(GMOの告知にもとづくと記事が紹介)。FX口座は、取引履歴と残高に身に覚えのない注文がないか確認し、あれば取引業者へ連絡。</li>
-        <li><span class="tg o">目安</span>当面は、該当サービスへの接続を控える。接続ファイル(.rdp)は不用意に開かない。やむを得ず接続するときは、リモートデスクトップの「ローカルリソース」で、ドライブやクリップボードの共有を切る(専門家・記事の見解)。</li>
-        <li><span class="tg o">目安</span>手元のPCで、重要なファイルを、ネットにつながない外付けディスクなどに退避する。実行ファイルや圧縮ファイルはコピーしない。</li>
-        <li><span class="tg o">目安</span>同じパスワードを他のサービスで使っていれば、すべて変更し、二段階認証を設定する。メール→銀行・証券→その他の順がおすすめ。</li>
-        <li><span class="tg o">目安</span>不審な動作(急な重さ、見覚えのないソフト・通信)があれば、ネットから切り離し、専門業者・GMOの窓口に相談する。初期化まで必要かは、状況によります。</li>
-      </ol>
-      <h3>脅迫メールや連絡が来たとき(全員共通)</h3>
-      <ul>
-        <li>払わない・返信しない。メール内のURLや添付ファイルは開かない。</li>
-        <li>画面やメールは消さず、スクリーンショットで残す。</li>
-        <li>警察のサイバー犯罪相談窓口、またはGMOの問い合わせ窓口に連絡(警察の相談電話は #9110)。</li>
-        <li>家族・知人に「あなたの名前で届く不審なメールは開かず、返信もしない」と伝えておく。</li>
-        <li>最新の案内は、GMOインターネットグループの公式告知で確認する。</li>
-      </ul>
-      <p class="src">【区分】「公式」はGMOの告知にもとづくと記事が紹介した内容、「目安」は記事・専門家の見解や一般的な対策で、GMOが公式に指示したものではありません。私は公式告知の原文を確認できていません。出典:テレビ朝日系(KSB)の報道、解説記事(kikumoto-taxfp、satoru.net)。攻撃者の主張は確認されていません。</p>
-    </details>
-  </section>
-
-
   <section class="main">
     <div class="card" id="sv">
       <div class="hd"><h2>停止・メンテナンス中のサービス</h2><small id="cnt"></small></div>
@@ -334,6 +313,98 @@ a.mi{text-decoration:none;box-sizing:border-box}
       <div class="hd"><h2>できごとの記録</h2><small>新しい順</small></div>
       <div class="feed" id="feed"></div>
     </div>
+  </section>
+
+  <section class="hero" id="top">
+    <div class="card cd">
+      <div class="head" id="headline"></div>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="card" id="facts-card">
+      <h2>脆弱性の要点</h2>
+      <dl class="facts" id="facts"></dl>
+    </div>
+  </section>
+
+  <section class="card gmo" id="gmo">
+    <details open>
+      <summary>お名前.com デスクトップクラウド:犯行声明と利用者の対処法<span class="dl">27日12:30 公開を確認</span></summary>
+      <p><b>報道(26日12:07配信・テレビ朝日系)</b>:攻撃者を名乗る側が、100万ドル(約1億5,000万円余)を日本時間27日正午までに支払うよう要求。支払われなければ、利用者のパソコンのデータを公開または暗号化すると主張しています。攻撃側は「利用者PCのデータすべてにアクセスでき、バックドアを設置した」と主張していますが、<b>確認はとれていません</b>(要求額はセキュリティ会社S&amp;Jの分析にもとづく報道)。GMOは金銭の要求があったことを認め、<b>「攻撃者からの要求には応じません」</b>としています。期限の時刻に必ず攻撃が実行されるとは限りません。</p>
+      <p><b>【27日〜28日の経過】</b>期限の27日正午を過ぎた12:30ごろ、GMOは攻撃者とみられる者による顧客データとみられる情報の公開を確認(内容は調査中)。ランサムウェアは13:55時点でも未確認。GMOは公開先のサイトを見ない、公開情報を複製・再投稿・共有しないよう要請し、身代金は払わない方針です(公式 第10〜11報)。公開が確認された情報の区分ごとに「GMO特別お見舞金」(基本情報1万円/金融・認証情報1.5万円/プライバシー性の高い情報2.5万円。上限額の表示が資料間で不一致のため未確認)。一律5,000円・損失補償とは別。24時間窓口 03-5456-2560。「GMOサイバー犯罪撲滅・懸賞金」は28日12:00から受付(総額上限100万米ドル)。公式:group.gmo/info/alert/</p>
+      <h3>まず、お名前.com デスクトップクラウド(デスクトップVPS)を使っている方</h3>
+      <ol>
+        <li><span class="tg">公式</span>サーバーに使っていない別の端末から、取引ツール・取引口座・関連サービスのパスワードを変更し、ログイン中の接続を切る(GMOの告知にもとづくと記事が紹介)。FX口座は、取引履歴と残高に身に覚えのない注文がないか確認し、あれば取引業者へ連絡。</li>
+        <li><span class="tg o">目安</span>当面は、該当サービスへの接続を控える。接続ファイル(.rdp)は不用意に開かない。やむを得ず接続するときは、リモートデスクトップの「ローカルリソース」で、ドライブやクリップボードの共有を切る(専門家・記事の見解)。</li>
+        <li><span class="tg o">目安</span>手元のPCで、重要なファイルを、ネットにつながない外付けディスクなどに退避する。実行ファイルや圧縮ファイルはコピーしない。</li>
+        <li><span class="tg o">目安</span>同じパスワードを他のサービスで使っていれば、すべて変更し、二段階認証を設定する。メール→銀行・証券→その他の順がおすすめ。</li>
+        <li><span class="tg o">目安</span>不審な動作(急な重さ、見覚えのないソフト・通信)があれば、ネットから切り離し、専門業者・GMOの窓口に相談する。初期化まで必要かは、状況によります。</li>
+      </ol>
+      <h3>脅迫メールや連絡が来たとき(全員共通)</h3>
+      <ul>
+        <li>払わない・返信しない。メール内のURLや添付ファイルは開かない。</li>
+        <li>画面やメールは消さず、スクリーンショットで残す。</li>
+        <li>警察のサイバー犯罪相談窓口、またはGMOの問い合わせ窓口に連絡(警察の相談電話は #9110)。</li>
+        <li>家族・知人に「あなたの名前で届く不審なメールは開かず、返信もしない」と伝えておく。</li>
+        <li>最新の案内は、GMOインターネットグループの公式告知で確認する。</li>
+      </ul>
+      <p class="src">【区分】「公式」はGMOの告知にもとづくと記事が紹介した内容、「目安」は記事・専門家の見解や一般的な対策で、GMOが公式に指示したものではありません。私は公式告知の原文を確認できていません。出典:テレビ朝日系(KSB)の報道、解説記事(kikumoto-taxfp、satoru.net)。攻撃者の主張は確認されていません。</p>
+    </details>
+  </section>
+
+
+  <section class="card" id="vuln">
+    <div class="hd"><h2>脆弱性一覧:状況と対処法</h2><small>確認できた範囲(28日13時時点)</small></div>
+    <p class="note" style="margin:4px 0 0">今回の一連の騒動で見つかった脆弱性を、報道・公式告知の記載にもとづいてまとめました。<b>「悪用確認」と「未確認」は区別して読んでください。</b>公式情報で必ず確認を。</p>
+    <div class="vtw"><table class="vt">
+      <thead><tr><th>名称・CVE</th><th>対象</th><th>深刻度</th><th>状況</th><th>修正版</th><th>対処法</th></tr></thead>
+      <tbody>
+      <tr><td class="nm" data-l="名称・CVE">PHP2Shell<br><code>CVE-2026-109618</code>(メモリ破損・use-after-free)<br><code>CVE-2026-109619</code>(内部リクエスト状態の不整合)</td>
+        <td data-l="対象">PHP(mod_php・PHP-FPM・php-cgi・FrankenPHP・LiteSpeedなど、Webリクエストを処理する環境)</td>
+        <td data-l="深刻度"><span class="sv r">Critical</span> CVSS v4.0 9.2。認証なしで遠隔コード実行</td>
+        <td data-l="状況"><span class="sv r">悪用確認(米CISA)</span> CISAが10/26にKEV追加(連邦機関は10/29期限)。攻撃の試行は複数社が観測。国内でも停止・休止が多数。成功した侵害の件数は未確認</td>
+        <td data-l="修正版">PHP 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35。<b>8.1以前は公式の修正版なし</b></td>
+        <td data-l="対処法">PHP本体を更新。更新後も10/20以降のログを点検し、認証情報を入れ替え。更新できない・8.1以前は、更新まで該当システムをオフライン化(CISA推奨)。OSが配るパッケージは各社の対応を確認</td></tr>
+      <tr><td class="nm" data-l="名称・CVE">HTTP2Shell / Node2Shell<br><code>CVE-2026-111497</code>(Brotli)</td>
+        <td data-l="対象">圧縮ライブラリBrotli 1.0.3〜1.2.0と、それを使う製品。Node.js・Bun・Envoy・Istio・Pythonのbrotli/brotlicffi・Debianの libbrotli1 など。curl/libcurl・Electronアプリ等は「注意対象」とされるが影響は<b>未確認</b></td>
+        <td data-l="深刻度"><span class="sv r">高</span> バッファオーバーフロー。クラッシュ・メモリ漏えい・遠隔コード実行のおそれ</td>
+        <td data-l="状況"><span class="sv o">悪用は未確認</span> JPCERT/CCが10/26に注意喚起。報道の多くは実際の悪用に触れていない(一部にPoC報告もあり資料が割れる)。CISAのKEVには未掲載(確認できた範囲)</td>
+        <td data-l="修正版">Brotli 1.2.1 / 1.1.1 / 1.0.10。Node.js 26.12.1 / 24.22.1 / 22.23.4。Bun 1.4.4。Python brotli 1.2.1・brotlicffi 1.2.1.0。Envoy 1.40.0ほか。Istio 1.31.2ほか</td>
+        <td data-l="対処法">Node.jsなどを修正版へ更新して再起動。Brotliの版数は修正後も変わらないため、各製品のバージョンで確認。Debianは libbrotli1 を更新し、プロセスを再起動。Brotliを組み込む依存ライブラリを棚卸し。外部から受けた圧縮データの自動展開箇所を把握。公式の緩和策は出ていない</td></tr>
+      <tr><td class="nm" data-l="名称・CVE">Microsoft .NET・PowerShell等の緊急更新<br><code>CVE-2026-111497</code>(.NET側)<br><code>CVE-2026-114148</code><br><code>CVE-2026-70197</code> / <code>CVE-2026-102870</code></td>
+        <td data-l="対象">.NET 8/9/10、Visual Studio 2019/2022/2026、PowerShell 7.4/7.5/7.6。.NET Frameworkは影響なし</td>
+        <td data-l="深刻度">111497は上のBrotliと同じ。114148はLinux向け配布tarballの所有権の問題(ローカルでの権限昇格)。70197・102870は10/13更新の修正が不十分だった分の追加修正</td>
+        <td data-l="状況"><span class="sv o">悪用の記載なし</span> Microsoftが10/25(現地)に定例外更新を公開。ASP.NET Coreのリクエスト展開とHttpClientの自動展開は既定で無効</td>
+        <td data-l="修正版">.NET 8.0.33 / 9.0.22 / 10.0.14(11はRC3)。VS 18.11.2 / 17.14.43 / 16.11.61。PowerShell 7.6.9 / 7.5.13 / 7.4.22</td>
+        <td data-l="対処法">ランタイムを更新してアプリを再起動。<b>自己完結型アプリはOSの更新では足りず、再ビルドして再公開</b>。コンテナは更新済みイメージで再デプロイ。<code>dotnet --list-runtimes</code>で確認</td></tr>
+      <tr><td class="nm" data-l="名称・CVE">Node.js 10/21のセキュリティリリース(Brotli以外の高深刻度3件)<br><small>CVE番号は未確認</small></td>
+        <td data-l="対象">Node.js(DNS名のNUL文字の切り詰め/全角数字IPv4のTLS照合(24・26系のみ)/先頭ゼロのアドレスの解釈差)</td>
+        <td data-l="深刻度"><span class="sv o">High</span>(Node.jsの区分)</td>
+        <td data-l="状況"><span class="sv u">未確認</span> 悪用の記載なし。詳細は一次情報で確認が必要</td>
+        <td data-l="修正版">Node.js 26.12.1 / 24.22.1 / 22.23.4</td>
+        <td data-l="対処法">Node.jsを修正版へ更新。Debianはパッケージの更新を待つ版がある(18・20系は本家サポート終了)</td></tr>
+      <tr><td class="nm" data-l="名称・CVE">eMudhra 中間CA証明書の秘密鍵の問題<br><small>CVEなし(脆弱性ではなく証明書の事案)</small></td>
+        <td data-l="対象">インドの認証局eMudhraの中間CA証明書8件。不正なHTTPS証明書が発行されるおそれ</td>
+        <td data-l="深刻度"><span class="sv u">未確認</span></td>
+        <td data-l="状況"><span class="sv u">未確認</span> FirefoxとChromeは遮断済み、Chromeは27日にルート証明書を削除予定と報じられた(一次情報は未確認)。Node.jsの信頼済み証明書一覧も更新</td>
+        <td data-l="修正版">ブラウザ・OS・Node.jsの更新で信頼リストを反映</td>
+        <td data-l="対処法">ブラウザとOSを最新に更新。証明書の警告が出たら進まない</td></tr>
+      <tr><td class="nm" data-l="名称・CVE">その他(要約記事のみ・未確認)<br><small>LiteLLMの供給網攻撃/HPE無線LAN機器の脆弱性72件/Firefox Android版</small></td>
+        <td data-l="対象">LiteLLM、HPEの無線LAN機器、Firefox for Android(158.0.2で修正)</td>
+        <td data-l="深刻度"><span class="sv u">未確認</span></td>
+        <td data-l="状況"><span class="sv u">未確認</span> 10/25付の要約記事(Engineer's Digest)の記載のみ。PHP・Brotliとの関係は未確認</td>
+        <td data-l="修正版">各社の告知で確認</td>
+        <td data-l="対処法">利用中の製品の公式アドバイザリで、該当バージョンと修正版を確認</td></tr>
+      </tbody></table></div>
+    <h3 style="font-size:14px;margin:16px 0 0">その他の脆弱性・最新情報</h3>
+    <ul class="vnew">
+      <li><time>10/27</time>Microsoftの.NET緊急更新の解説記事(TECH+)。HTTP2Shell(Brotli)に加え、10/13更新の不十分だった修正の追加(CVE-2026-70197・102870)を含む。</li>
+      <li><time>10/26</time>JPCERT/CCがBrotliの脆弱性に注意喚起。修正版の適用と、侵害の有無の調査を要請。公式の緩和策は未公表。</li>
+      <li><time>10/26</time>米CISAがPHPの2件をKEVに追加。連邦機関に10/29までの対応を義務づけ。</li>
+      <li><time>10/26</time>PC Watchが「PHPやNode.jsだけではなく、Google製技術(Brotli)の脆弱性HTTP2Shellも対応急務」と報道。影響製品にEnvoy・Istio・Bunを挙げる。</li>
+      <li><time>10/25</time>Microsoftが.NET 8/9/10・PowerShell 7.x・Visual Studioの定例外更新を公開(現地時間)。</li>
+      <li><time>10/21</time>Node.jsが10件の脆弱性(High 4件、Brotli含む)を修正。同日、GoogleがBrotli 1.2.1 / 1.1.1 / 1.0.10を公開。PHP2Shellの修正版も同日に公開。</li>
+    </ul>
+    <p class="note" style="margin:10px 0 0">出典:sbbit(CISA)・TECH+(Microsoft)・IT Trend(JPCERT/CC)・PC Watch・innovatopia(Node.js)・Engineer's Digestほか。一次情報(各ベンダー・JPCERT/CC・CISA)は未確認の項目があります。このボードは網羅を目指していますが、すべての脆弱性を網羅するものではありません。</p>
   </section>
 
   <section class="card" id="bal">
@@ -466,8 +537,8 @@ function renderCountdown(now){
   var J=function(t){var d=new Date(t+9*3600000);return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())};
   var n=Math.round((J(now)-J(PATCH_AT))/86400000);
   if(n<0)n=0;
-  $("cd").textContent=n+"日";
-  $("cdlbl").textContent="PHP2Shell脆弱性の公表(日本時間 10/21)から経過";
+  $("cd").textContent="経過 "+n+"日";
+  $("cdlbl").textContent="PHP2Shell公表(10/21)から";
 }
 function renderTiles(now){
   var c={stop:0,plan:0,part:0,unk:0,ok:0};
@@ -629,9 +700,9 @@ function summary(){
   var now=Date.now(),c={stop:0,plan:0,part:0,ok:0};
   S.sv.forEach(function(s){var e=eff(s,now);if(c[e]!==undefined)c[e]++});
   var stops=S.sv.filter(function(s){return eff(s,now)==="stop"}).map(function(s){return s.n.replace(/\(.*$/,"")}).slice(0,12).join("、");
-  return "【PHP脆弱性 緊急パッチ 状況】"+tz(now,{month:"numeric",day:"numeric"})+" "+hm(now)+"時点\n"+(S.meta.headline||"")+"\n停止・メンテ中 "+c.stop+"件 / 開始予定 "+c.plan+"件 / 一部制限 "+c.part+"件 / 復旧済み "+c.ok+"件\n"+(stops?"主な停止:"+stops+"\n":"")+"最新:"+pageUrl()+"\n※公式告知で確認を";
+  return "【サイバー攻撃・脆弱性 状況】"+tz(now,{month:"numeric",day:"numeric"})+" "+hm(now)+"時点\n"+(S.meta.headline||"")+"\n停止・メンテ中 "+c.stop+"件 / 開始予定 "+c.plan+"件 / 一部制限 "+c.part+"件 / 復旧済み "+c.ok+"件\n"+(stops?"主な停止:"+stops+"\n":"")+"最新:"+pageUrl()+"\n※公式告知で確認を";
 }
-$("abShare").onclick=function(){var t=summary();if(navigator.share){navigator.share({title:"PHP脆弱性 状況ボード",text:t}).catch(function(){});return}copyTxt(t,"共有用の文面をコピーしました")};
+$("abShare").onclick=function(){var t=summary();if(navigator.share){navigator.share({title:"サイバー攻撃・脆弱性状況ボード",text:t}).catch(function(){});return}copyTxt(t,"共有用の文面をコピーしました")};
 $("abCopy").onclick=function(){copyTxt(summary(),"現在の状況をコピーしました")};
 $("abUrl").onclick=function(){copyTxt(pageUrl(),"リンクをコピーしました")};
 $("abRefresh").onclick=function(){toast("最新データを取得しています…");load().then(function(){toast("更新しました "+hms(Date.now()))})};
